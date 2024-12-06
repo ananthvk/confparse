@@ -1,0 +1,31 @@
+name: Ubuntu build (push)
+on: [push]
+jobs:
+  Build-And-Test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Job triggered by ${{ github.event_name }} event."
+      - uses: actions/checkout@v4
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: meson ninja-build
+          version: 1.0
+    
+      - name: Checkout build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            builddir
+            subprojects
+          key: ${{ github.workflow }}-builddir-${{ hashFiles('**/meson.build', '**/meson_options.txt', 'subprojects/*.wrap') }}
+
+      - name: Setup meson build files
+        run: |
+          meson setup -Denable-tests=true builddir
+
+      - name: Executing tests
+        run: |
+          cd builddir
+          meson test -v
+
+      - run: echo "Test status - ${{ job.status }}."
