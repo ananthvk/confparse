@@ -1,5 +1,5 @@
 project(
-    'cppstarter',
+    'confparse',
     ['cpp'],
     version: '0.1',
     license: 'MIT',
@@ -42,4 +42,4 @@ if get_option('enable-tests')
     subdir('tests')
 endif
 
-cppstarter_dep = declare_dependency(include_directories: include_dirs)
+confparse_dep = declare_dependency(include_directories: include_dirs)

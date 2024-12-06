@@ -1,8 +1,8 @@
-# cppstarter
-A C++ starter template for a header only library
+# confparse
+A C++ header only library to parse simple INI like configuration files.
 
 ## How to use?
-This is a header only library, so it does not require additional steps, just copy `cppstarter.h` from `include/` directory and use it in your project.
+This is a header only library, so it does not require additional steps, just copy `confparse.h` from `include/` directory and use it in your project.
 
 ## Running tests
 Install Meson, and a backend (such as Ninja) and run the following commands:
