@@ -78,32 +78,115 @@ class Config
     std::map<std::string, ValueType> cfg_map;
 };
 
+struct ConfigParserOptions
+{
+    std::string whitespace_characters;
+    std::string delimiters;
+    bool should_empty_lines_be_skipped;
+    bool should_parse_all_values_as_string;
+    bool should_allow_empty_values, should_allow_empty_lines;
+    bool should_lines_be_left_trimmed;
+    bool should_lines_be_right_trimmed;
+};
+
 class ConfigParser
 {
+  private:
+    ConfigParserOptions options;
+
+    // Line number of current line being processed, useful in error messages
+    size_t line_no;
+
+    // Trim the string by removing spaces at both ends, inplace
+    std::string &ltrim(std::string &s)
+    {
+        s.erase(0, s.find_first_not_of(options.whitespace_characters));
+        return s;
+    }
+
+    std::string &rtrim(std::string &s)
+    {
+        s.erase(s.find_last_not_of(options.whitespace_characters) + 1);
+        return s;
+    }
+
+    void throw_error(const std::string &message)
+    {
+        std::ostringstream oss;
+        oss << "Syntax error at line " << line_no << ": " << message;
+        throw parse_error(oss.str());
+    }
+
+    std::string preprocess_line(std::string line)
+    {
+        if (options.should_lines_be_left_trimmed)
+            ltrim(line);
+        if (options.should_lines_be_right_trimmed)
+            rtrim(line);
+
+        if (!options.should_allow_empty_lines && line.empty())
+            throw_error("Empty line found");
+
+        return line;
+    }
+
+    // Returns the index of the delimiter in the line, if the delimiter is not found, or is at an
+    // invalid position, raises an error
+    size_t find_delimiter(const std::string &line)
+    {
+        size_t index = line.find_first_of(options.delimiters);
+        if (index == std::string::npos)
+            throw_error("No delimiter found");
+
+        // Check if the delimiter is at the beginning of the line or at the end
+        if (index == 0)
+            throw_error("Empty key, delimiter at beginning of line");
+        if ((index + 1) == line.size() && !options.should_allow_empty_values)
+            throw_error("Empty value, delimiter at end of line");
+        return index;
+    }
+
+    std::pair<std::string, ValueType> parse_line(const std::string &line, size_t delimiter_index)
+    {
+        // Split the line into key and value part
+        auto key = line.substr(0, delimiter_index);
+        auto value = line.substr(delimiter_index + 1);
+
+        if (options.should_parse_all_values_as_string)
+        {
+            return std::make_pair(key, value);
+        }
+        // TODO: Other formats
+    }
+
+
   public:
+    ConfigParser()
+    {
+        options.whitespace_characters = " \t\r";
+        options.delimiters = "=";
+        options.should_allow_empty_lines = true;
+        options.should_allow_empty_values = true;
+        options.should_empty_lines_be_skipped = true;
+        options.should_parse_all_values_as_string = true;
+        options.should_lines_be_left_trimmed = true;
+        options.should_lines_be_right_trimmed = true;
+    }
+
     Config from_stream(std::istream &is)
     {
         Config cfg;
         std::string line;
-        size_t line_no = 1;
+        line_no = 0;
         while (std::getline(is, line))
         {
-            size_t index;
-            // No equals sign was found, invalid syntax
-            if ((index = line.find('=')) == std::string::npos)
-            {
-                std::ostringstream oss;
-                oss << "Syntax error at line " << line_no << ": No '=' found";
-                throw parse_error(oss.str());
-            }
-
-            // Split the line into key and value part
-            auto key = line.substr(0, index);
-            auto value = line.substr(index + 1);
-
-            cfg[key] = value;
-
             ++line_no;
+            line = preprocess_line(line);
+            if (line.empty())
+                continue;
+            auto delimiter_index = find_delimiter(line);
+            auto kv = parse_line(line, delimiter_index);
+            cfg[kv.first] = kv.second;
         }
         if (is.bad())
         {
