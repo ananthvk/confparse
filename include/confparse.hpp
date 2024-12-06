@@ -3,6 +3,7 @@
 #include <fstream>
 #include <map>
 #include <sstream>
+#include <string.h>
 #include <variant>
 
 namespace confparse
@@ -31,6 +32,16 @@ class ValueType
     long double as_real() const { return std::get<long double>(val); }
 };
 
+class parse_error : public std::runtime_error
+{
+  public:
+    parse_error(const std::string &message) : std::runtime_error(message) {}
+};
+
+/**
+ * @brief This class represents a configuration object which is a collection of key-value pairs,
+ * where key is a string and value is an integer, string, or a real number
+ */
 class Config
 {
   public:
@@ -67,21 +78,54 @@ class Config
     std::map<std::string, ValueType> cfg_map;
 };
 
-/*
-inline Config from_stream(std::istream &is) {}
-
-inline Config from_str(const std::string &s)
+class ConfigParser
 {
-    std::istringstream iss(s);
-    return from_stream(iss);
-}
+  public:
+    Config from_stream(std::istream &is)
+    {
+        Config cfg;
+        std::string line;
+        size_t line_no = 1;
+        while (std::getline(is, line))
+        {
+            size_t index;
+            // No equals sign was found, invalid syntax
+            if ((index = line.find('=')) == std::string::npos)
+            {
+                std::ostringstream oss;
+                oss << "Syntax error at line " << line_no << ": No '=' found";
+                throw parse_error(oss.str());
+            }
 
-inline Config from_file(const std::string &filepath)
-{
-    std::ifstream ifs(filepath);
-    return from_stream(ifs);
-}
-*/
+            // Split the line into key and value part
+            auto key = line.substr(0, index);
+            auto value = line.substr(index + 1);
+
+            cfg[key] = value;
+
+            ++line_no;
+        }
+        if (is.bad())
+        {
+            std::ostringstream oss;
+            oss << "Error while reading config file: " << strerror(errno);
+            throw parse_error(oss.str());
+        }
+        return cfg;
+    }
+
+    Config from_str(const std::string &s)
+    {
+        std::istringstream iss(s);
+        return from_stream(iss);
+    }
+
+    Config from_file(const std::string &filepath)
+    {
+        std::ifstream ifs(filepath);
+        return from_stream(ifs);
+    }
+};
 
 } // namespace confparse
 #endif // A_CONFPARSE_H
