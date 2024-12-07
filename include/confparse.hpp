@@ -218,6 +218,8 @@ class ConfigParser
 
     // Line number of current line being processed, useful in error messages
     size_t line_no;
+    // Also store current line, useful for error reporting
+    std::string current_line;
 
     // Trim the string by removing spaces at both ends, inplace
     std::string &ltrim(std::string &s)
@@ -235,7 +237,8 @@ class ConfigParser
     void throw_error(const std::string &message)
     {
         std::ostringstream oss;
-        oss << "Syntax error at line " << line_no << ": " << message;
+        oss << "Syntax error: " << message << "\n";
+        oss << "Line " << line_no << " | " << current_line << "\n";
         throw parse_error(oss.str());
     }
 
@@ -311,6 +314,7 @@ class ConfigParser
         while (std::getline(is, line))
         {
             ++line_no;
+            current_line = line;
             line = preprocess_line(line);
             if (line.empty())
                 continue;
