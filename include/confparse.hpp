@@ -13,7 +13,8 @@ namespace confparse
 /**
  * @brief This class represents a value in the configuration, it can either be an integer, double,
  * a string, or a boolean
- * Note: True, true, 1 evaluate to true. False, false, 0 evaluate to false, All other values result in an error
+ * Note: True, true, 1 evaluate to true. False, false, 0 evaluate to false, All other values result
+ * in an error
  * @note The value is always stored as a string, and converted when required, so if you are
  * repeatedly using a value, store it in a variable before using it to improve performance.
  * Also an empty value is not the same as an empty string
@@ -335,6 +336,12 @@ class ConfigParser
     Config from_file(const std::string &filepath)
     {
         std::ifstream ifs(filepath);
+        if (!ifs)
+        {
+            std::ostringstream oss;
+            oss << "File error: Error while reading config file: " << strerror(errno);
+            throw parse_error(oss.str());
+        }
         return from_stream(ifs);
     }
 };
