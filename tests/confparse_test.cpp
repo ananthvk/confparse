@@ -168,6 +168,44 @@ TEST(TestConfigParser, SimpleParsingNumbers)
     EXPECT_THROW(cfg.get("AppInstalled7").parse<bool>(), confparse::parse_error);
 }
 
+TEST(TestConfigParser, ParsingWithCommentEscape)
+{
+    confparse::ConfigParser parser;
+    auto cfg = parser.from_str(R"(
+        Name=\#ThisisMyName\#\; # The name of the user
+    )");
+
+    ASSERT_EQ(cfg.get("Name").as_string(), "#ThisisMyName#;");
+    ASSERT_EQ(cfg.size(), 1);
+
+    cfg = parser.from_str(R"(
+        Name=\#ThisisMyName\#\;\\n\n\n; # The name of the user
+    )");
+    ASSERT_EQ(cfg.get("Name").as_string(), "#ThisisMyName#;\\\\n\\n\\n");
+    ASSERT_EQ(cfg.size(), 1);
+
+    cfg = parser.from_str(R"(\#Key\#=\#Val\#ue\# # Special type of key)");
+    ASSERT_EQ(cfg.get("#Key#").as_string(), "#Val#ue#");
+    ASSERT_EQ(cfg.size(), 1);
+
+    cfg = parser.from_str(R"(\#=\#)");
+    ASSERT_EQ(cfg.get("#").as_string(), "#");
+    ASSERT_EQ(cfg.size(), 1);
+
+    cfg = parser.from_str(R"(\;=\;)");
+    ASSERT_EQ(cfg.get(";").as_string(), ";");
+    ASSERT_EQ(cfg.size(), 1);
+
+    cfg = parser.from_str(R"(\;\n\a\b=\;)");
+    ASSERT_EQ(cfg.get(";\\n\\a\\b").as_string(), ";");
+    ASSERT_EQ(cfg.size(), 1);
+    
+    cfg = parser.from_str(R"(\;\n\a\b=\;)");
+    ASSERT_EQ(cfg.get(";\\n\\a\\b").as_string(), ";");
+    ASSERT_EQ(cfg.size(), 1);
+    
+}
+
 int main(int argc, char *argv[])
 {
     ::testing::InitGoogleTest(&argc, argv);

@@ -66,5 +66,4 @@ int main()
 
 ## TODO
 - Implement flag to allow/disallow inline comments
-- Implement escaping of comment characters in string
 - Implement sections

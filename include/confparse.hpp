@@ -201,6 +201,8 @@ struct ConfigParserOptions
     std::string delimiters = "=";
     // Only single character single line comments supported
     std::string single_line_comments = "#;";
+    std::string string_delimiter_characters = "\"'";
+    char escape_character = '\\';
     bool should_allow_empty_lines = true;
     bool should_allow_empty_values = true;
     bool should_empty_lines_be_skipped = true;
@@ -249,20 +251,51 @@ class ConfigParser
         if (options.should_lines_be_right_trimmed)
             rtrim(line);
 
-        if (!options.should_allow_empty_lines && line.empty())
-            throw_error("Empty line found");
-
-        if (options.should_allow_comments)
+        if (line.empty())
         {
-            auto pos = line.find_first_of(options.single_line_comments);
-            if (pos != std::string::npos)
-            {
-                // A comment character was found
-                line.erase(pos);
-            }
+            if (!options.should_allow_empty_lines)
+                throw_error("Empty line found");
+            return line;
         }
 
-        return line;
+        if (!options.should_allow_comments)
+        {
+            return line;
+        }
+
+        // If comments are allowed, this code should remove comment escape sequence
+        // i.e. if the comment characters are ; and #
+        // \# and \; should become just # and ;
+        // It ignores all other escape sequences
+
+        char previous_character = line[0];
+        auto is_first_char_comment = options.single_line_comments.find(line[0]) != std::string::npos;
+        if (is_first_char_comment)
+        {
+            // If the first character is itself a comment character, skip the entire process
+            return "";
+        }
+
+        std::string line_cpy;
+        line_cpy.reserve(line.size());
+
+        line_cpy.push_back(previous_character);
+
+        for (size_t i = 1; i < line.size(); ++i)
+        {
+            auto is_comment_char = options.single_line_comments.find(line[i]) != std::string::npos;
+            if (is_comment_char)
+            {
+                if (previous_character == options.escape_character)
+                    line_cpy.pop_back();
+                else
+                    break;
+            }
+
+            line_cpy.push_back(line[i]);
+            previous_character = line[i];
+        }
+        return line_cpy;
     }
 
     // Returns the index of the delimiter in the line, if the delimiter is not found, or is at an
