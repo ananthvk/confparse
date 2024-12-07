@@ -4,39 +4,99 @@
 #include <map>
 #include <sstream>
 #include <string.h>
-#include <variant>
+#include <string>
 #include <vector>
 
 namespace confparse
 {
 
 /**
- * @brief This class represents a value in the configuration, it can either be an integer, double or
- * a string
+ * @brief This class represents a value in the configuration, it can either be an integer, double,
+ * a string, or a boolean
+ * Note: True, true, 1 evaluate to true, while double or any other value evaluates to false
+ * @note The value is always stored as a string, and converted when required, so if you are
+ * repeatedly using a value, store it in a variable before using it to improve performance.
+ * Also an empty value is not the same as an empty string
  */
-class ValueType
-{
-    std::variant<std::monostate, long long int, long double, std::string> val;
-    bool is_empty_;
 
-  public:
-    ValueType() : is_empty_(true) {}
-
-    template <typename T> ValueType(const T &value) : val{value}, is_empty_{false} {}
-
-    bool is_empty() const { return is_empty_; }
-
-    std::string as_string() const { return std::get<std::string>(val); }
-
-    long long int as_int() const { return std::get<long long int>(val); }
-
-    long double as_real() const { return std::get<long double>(val); }
-};
 
 class parse_error : public std::runtime_error
 {
   public:
     parse_error(const std::string &message) : std::runtime_error(message) {}
+};
+
+template <class...> struct False : std::bool_constant<false>
+{
+};
+
+class ValueType
+{
+    std::string val;
+    bool is_empty_;
+
+  public:
+    ValueType() : is_empty_(true) {}
+
+    template <typename T> ValueType(const T &value) : is_empty_{false}
+    {
+        if constexpr (std::is_same<std::decay_t<T>, std::string>::value ||  // Handle strings
+                      std::is_same<std::decay_t<T>, const char *>::value || // Handle const char*
+                      std::is_same<std::decay_t<std::remove_extent_t<T>>,
+                                   char>::value) // Handle const char[N] arrays
+        {
+            val = value;
+        }
+        else if constexpr (std::is_arithmetic<T>::value)
+        {
+            // Convert numeric types to string
+            val = std::to_string(value);
+        }
+        else
+        {
+            static_assert(False<T>{}, "Unsupported type for ValueType");
+        }
+    }
+
+    bool is_empty() const { return is_empty_; }
+
+    std::string as_string() const { return val; }
+
+    template <typename T> T parse() const
+    {
+        std::istringstream iss(val);
+        T parsed_val;
+        if ((!(iss >> parsed_val)) || !(iss.eof()))
+        {
+            // If the value could not be parsed, or if there are some more characters
+            throw parse_error("Parse error: Invalid literal during parse()\n    | " + val);
+        }
+        return parsed_val;
+    }
+
+    // Return default_value if the value cannot be parsed
+    template <typename T> T try_parse(T default_value) const
+    {
+        std::istringstream iss(val);
+        T parsed_val;
+        if ((!(iss >> parsed_val)) || !(iss.eof()))
+        {
+            return default_value;
+        }
+        return parsed_val;
+    }
+
+    // Checks if the value can be parsed into the required type
+    template <typename T> bool is() const
+    {
+        std::istringstream iss(val);
+        T parsed_val;
+        if ((!(iss >> parsed_val)) || !(iss.eof()))
+        {
+            return false;
+        }
+        return true;
+    }
 };
 
 /**

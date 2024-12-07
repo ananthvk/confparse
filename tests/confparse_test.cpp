@@ -19,10 +19,10 @@ TEST(TestConfig, GetAndSet)
     cfg.set("KEY3", 123456789);
     cfg.set("KEY4", 3.1415);
 
-    ASSERT_EQ(cfg.get("KEY3").as_int(), 123456789);
+    ASSERT_EQ(cfg.get("KEY3").parse<int>(), 123456789);
     ASSERT_EQ(cfg.get("KEY1").as_string(), "This is the value for this key");
     ASSERT_EQ(cfg.get("KEY2").as_string(), "");
-    ASSERT_NEAR(cfg.get("KEY4").as_real(), 3.1415, 0.001);
+    ASSERT_NEAR(cfg.get("KEY4").parse<double>(), 3.1415, 0.001);
 
     ASSERT_EQ(cfg.size(), 4);
 
@@ -37,8 +37,8 @@ TEST(TestConfig, GetAndSet)
     cfg["numkey"] = 3;
     cfg["strkey"] = "This is string!!";
 
-    ASSERT_NEAR(cfg.get("floatkey").as_real(), 3.89, 0.01);
-    ASSERT_EQ(cfg.get("numkey").as_int(), 3);
+    ASSERT_NEAR(cfg.get("floatkey").parse<float>(), 3.89, 0.01);
+    ASSERT_EQ(cfg.get("numkey").parse<int>(), 3);
     ASSERT_EQ(cfg.get("strkey").as_string(), "This is string!!");
 }
 
@@ -117,7 +117,6 @@ TEST(TestConfigParser, SimpleParsingStringsWithComments)
 }
 
 
-/*
 TEST(TestConfigParser, SimpleParsingNumbers)
 {
     confparse::ConfigParser parser;
@@ -125,12 +124,12 @@ TEST(TestConfigParser, SimpleParsingNumbers)
     ASSERT_EQ(cfg.size(), 0);
 
     cfg = parser.from_str("Key=3");
-    ASSERT_EQ(cfg.get("Key").as_int(), 3);
+    ASSERT_EQ(cfg.get("Key").parse<int>(), 3);
 
     cfg = parser.from_str("Key=1888\nSecond=-512\nFourth=-3.1415\n");
-    ASSERT_EQ(cfg.get("Key").as_int(), 1888);
-    ASSERT_EQ(cfg.get("Second").as_int(), -512);
-    ASSERT_NEAR(cfg.get("Fourth").as_real(), -3.1415, 0.01);
+    ASSERT_EQ(cfg.get("Key").parse<int>(), 1888);
+    ASSERT_EQ(cfg.get("Second").parse<int>(), -512);
+    ASSERT_NEAR(cfg.get("Fourth").parse<double>(), -3.1415, 0.01);
 
     cfg = parser.from_str(R"(
         AppId=1552
@@ -138,11 +137,10 @@ TEST(TestConfigParser, SimpleParsingNumbers)
         AppInstalled=1
     )");
 
-    ASSERT_EQ(cfg.get("AppId").as_int(), 1552);
-    ASSERT_NEAR(cfg.get("AppScore").as_real(), 3172.3421, 0.01);
-    ASSERT_EQ(cfg.get("AppInstalled").as_int(), 1);
+    ASSERT_EQ(cfg.get("AppId").parse<int>(), 1552);
+    ASSERT_NEAR(cfg.get("AppScore").parse<double>(), 3172.3421, 0.01);
+    ASSERT_EQ(cfg.get("AppInstalled").parse<int>(), 1);
 }
-*/
 
 int main(int argc, char *argv[])
 {
