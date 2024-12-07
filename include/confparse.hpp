@@ -216,7 +216,6 @@ struct ConfigParserOptions
 class ConfigParser
 {
   private:
-    ConfigParserOptions options;
 
     // Line number of current line being processed, useful in error messages
     size_t line_no;
@@ -337,6 +336,8 @@ class ConfigParser
 
 
   public:
+    ConfigParserOptions options;
+
     ConfigParser() {}
 
     Config from_stream(std::istream &is)
