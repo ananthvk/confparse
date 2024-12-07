@@ -5,6 +5,7 @@
 #include <sstream>
 #include <string.h>
 #include <variant>
+#include <vector>
 
 namespace confparse
 {
@@ -80,13 +81,18 @@ class Config
 
 struct ConfigParserOptions
 {
-    std::string whitespace_characters;
-    std::string delimiters;
-    bool should_empty_lines_be_skipped;
-    bool should_parse_all_values_as_string;
-    bool should_allow_empty_values, should_allow_empty_lines;
-    bool should_lines_be_left_trimmed;
-    bool should_lines_be_right_trimmed;
+    std::string whitespace_characters = " \t\r";
+    std::string delimiters = "=";
+    // Only single character single line comments supported
+    std::string single_line_comments = "#;";
+    bool should_allow_empty_lines = true;
+    bool should_allow_empty_values = true;
+    bool should_empty_lines_be_skipped = true;
+    bool should_lines_be_left_trimmed = true;
+    bool should_lines_be_right_trimmed = true;
+    bool should_keys_be_trimmed = true;
+    bool should_values_be_trimmed = true;
+    bool should_allow_comments = true;
 };
 
 class ConfigParser
@@ -127,6 +133,18 @@ class ConfigParser
         if (!options.should_allow_empty_lines && line.empty())
             throw_error("Empty line found");
 
+        if (options.should_allow_comments)
+        {
+            auto pos = line.find_first_of(options.single_line_comments);
+            if (pos != std::string::npos)
+            {
+                // A comment character was found
+                // TODO: Support escaping of comment char in string
+                // TODO: Also allow flag for inline comments
+                line.erase(pos);
+            }
+        }
+
         return line;
     }
 
@@ -152,26 +170,24 @@ class ConfigParser
         auto key = line.substr(0, delimiter_index);
         auto value = line.substr(delimiter_index + 1);
 
-        if (options.should_parse_all_values_as_string)
+        if (options.should_keys_be_trimmed)
         {
-            return std::make_pair(key, value);
+            rtrim(key);
+            ltrim(key);
         }
-        // TODO: Other formats
+
+        if (options.should_values_be_trimmed)
+        {
+            ltrim(value);
+            rtrim(value);
+        }
+
+        return std::make_pair(key, value);
     }
 
 
   public:
-    ConfigParser()
-    {
-        options.whitespace_characters = " \t\r";
-        options.delimiters = "=";
-        options.should_allow_empty_lines = true;
-        options.should_allow_empty_values = true;
-        options.should_empty_lines_be_skipped = true;
-        options.should_parse_all_values_as_string = true;
-        options.should_lines_be_left_trimmed = true;
-        options.should_lines_be_right_trimmed = true;
-    }
+    ConfigParser() {}
 
     Config from_stream(std::istream &is)
     {

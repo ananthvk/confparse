@@ -80,6 +80,43 @@ TEST(TestConfigParser, SimpleParsingStringsErrorConditions)
     EXPECT_THROW(parser.from_str("ValueKey"), confparse::parse_error);
 }
 
+TEST(TestConfigParser, SimpleParsingStringsWithComments)
+{
+    confparse::ConfigParser parser;
+    auto cfg = parser.from_str("");
+    ASSERT_EQ(cfg.size(), 0);
+
+    cfg = parser.from_str("Key=Value");
+    ASSERT_EQ(cfg.get("Key").as_string(), "Value");
+
+    cfg = parser.from_str("Key=Value    # This is the first key\nSecond=Third    # This is the second key   \nFourth=Fifth # This is another key\n# Comment line");
+    ASSERT_EQ(cfg.get("Key").as_string(), "Value");
+    ASSERT_EQ(cfg.get("Second").as_string(), "Third");
+    ASSERT_EQ(cfg.get("Fourth").as_string(), "Fifth");
+
+    cfg = parser.from_str(R"(
+        # Name of the app, note it should be capitalized
+        AppName=ExampleApp
+        # App version
+        Version=1.0.0
+        # Do not use
+        Value=
+        ; Another type of comment
+        Empty=
+        ; Comments here
+        ; Another line comment
+        # More comments
+        # Language, can be two digit language code
+        Language=en
+    )");
+
+    ASSERT_EQ(cfg.get("AppName").as_string(), "ExampleApp");
+    ASSERT_EQ(cfg.get("Version").as_string(), "1.0.0");
+    ASSERT_EQ(cfg.get("Language").as_string(), "en");
+    ASSERT_EQ(cfg.size(), 5);
+}
+
+
 /*
 TEST(TestConfigParser, SimpleParsingNumbers)
 {
