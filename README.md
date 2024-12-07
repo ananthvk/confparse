@@ -73,7 +73,6 @@ struct ConfigParserOptions
     std::string delimiters = "=";
     // Only single character single line comments supported
     std::string single_line_comments = "#;";
-    std::string string_delimiter_characters = "\"'";
     char escape_character = '\\';
     bool should_allow_empty_lines = true;
     bool should_allow_empty_values = true;
