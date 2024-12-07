@@ -64,6 +64,34 @@ int main()
 }
 ```
 
+## Customizing usage
+This is the default values for various options used by the parser.
+```cpp
+struct ConfigParserOptions
+{
+    std::string whitespace_characters = " \t\r";
+    std::string delimiters = "=";
+    // Only single character single line comments supported
+    std::string single_line_comments = "#;";
+    std::string string_delimiter_characters = "\"'";
+    char escape_character = '\\';
+    bool should_allow_empty_lines = true;
+    bool should_allow_empty_values = true;
+    bool should_empty_lines_be_skipped = true;
+    bool should_lines_be_left_trimmed = true;
+    bool should_lines_be_right_trimmed = true;
+    bool should_keys_be_trimmed = true;
+    bool should_values_be_trimmed = true;
+    bool should_allow_comments = true;
+};
+```
+
+You can modify these options in the parser object, for example to change the delimiter to `:`
+```
+confparse::ConfigParser parser;
+parser.options.delimiters = ":";
+// Rest of the code
+```
 ## TODO
 - Implement flag to allow/disallow inline comments
 - Implement sections
