@@ -54,7 +54,10 @@ class ValueType
         }
         else
         {
-            static_assert(False<T>{}, "Unsupported type for ValueType");
+            // Try using stringstream to attempt an conversion
+            std::ostringstream oss;
+            oss << value;
+            val = oss.str();
         }
     }
 
@@ -134,6 +137,14 @@ class Config
         }
     }
 
+    auto begin() { return cfg_map.begin(); }
+
+    auto end() { return cfg_map.end(); }
+
+    auto cbegin() { return cfg_map.cbegin(); }
+
+    auto cend() { return cfg_map.cend(); }
+
   private:
     ValueType empty_value;
     std::map<std::string, ValueType> cfg_map;
@@ -199,8 +210,6 @@ class ConfigParser
             if (pos != std::string::npos)
             {
                 // A comment character was found
-                // TODO: Support escaping of comment char in string
-                // TODO: Also allow flag for inline comments
                 line.erase(pos);
             }
         }
