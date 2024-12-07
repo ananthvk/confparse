@@ -13,7 +13,7 @@ namespace confparse
 /**
  * @brief This class represents a value in the configuration, it can either be an integer, double,
  * a string, or a boolean
- * Note: True, true, 1 evaluate to true, while double or any other value evaluates to false
+ * Note: True, true, 1 evaluate to true. False, false, 0 evaluate to false, All other values result in an error
  * @note The value is always stored as a string, and converted when required, so if you are
  * repeatedly using a value, store it in a variable before using it to improve performance.
  * Also an empty value is not the same as an empty string
@@ -40,10 +40,16 @@ class ValueType
 
     template <typename T> ValueType(const T &value) : is_empty_{false}
     {
-        if constexpr (std::is_same<std::decay_t<T>, std::string>::value ||  // Handle strings
-                      std::is_same<std::decay_t<T>, const char *>::value || // Handle const char*
-                      std::is_same<std::decay_t<std::remove_extent_t<T>>,
-                                   char>::value) // Handle const char[N] arrays
+        if constexpr (std::is_same<T, bool>::value)
+        {
+            // Special handling for bool, set the value as True or False
+            val = (value) ? "True" : "False";
+        }
+        else if constexpr (std::is_same<std::decay_t<T>, std::string>::value || // Handle strings
+                           std::is_same<std::decay_t<T>,
+                                        const char *>::value || // Handle const char*
+                           std::is_same<std::decay_t<std::remove_extent_t<T>>,
+                                        char>::value) // Handle const char[N] arrays
         {
             val = value;
         }
@@ -67,6 +73,21 @@ class ValueType
 
     template <typename T> T parse() const
     {
+        if constexpr (std::is_same<T, bool>::value)
+        {
+            if (val == "True" || val == "true" || val == "1")
+            {
+                return true;
+            }
+            if (val == "False" || val == "false" || val == "0")
+            {
+                return false;
+            }
+            else
+            {
+                throw parse_error("Parse error: Invalid literal for bool\n    | " + val);
+            }
+        }
         std::istringstream iss(val);
         T parsed_val;
         if ((!(iss >> parsed_val)) || !(iss.eof()))
@@ -80,6 +101,21 @@ class ValueType
     // Return default_value if the value cannot be parsed
     template <typename T> T try_parse(T default_value) const
     {
+        if constexpr (std::is_same<T, bool>::value)
+        {
+            if (val == "True" || val == "true" || val == "1")
+            {
+                return true;
+            }
+            if (val == "False" || val == "false" || val == "0")
+            {
+                return false;
+            }
+            else
+            {
+                return default_value;
+            }
+        }
         std::istringstream iss(val);
         T parsed_val;
         if ((!(iss >> parsed_val)) || !(iss.eof()))
@@ -92,6 +128,14 @@ class ValueType
     // Checks if the value can be parsed into the required type
     template <typename T> bool is() const
     {
+        if constexpr (std::is_same<T, bool>::value)
+        {
+            if (val == "True" || val == "true" || val == "1" || val == "False" || val == "false" ||
+                val == "0")
+                return true;
+            else
+                return false;
+        }
         std::istringstream iss(val);
         T parsed_val;
         if ((!(iss >> parsed_val)) || !(iss.eof()))

@@ -42,6 +42,17 @@ TEST(TestConfig, GetAndSet)
     ASSERT_EQ(cfg.get("strkey").as_string(), "This is string!!");
 }
 
+TEST(TestConfig, Bools)
+{
+    confparse::Config cfg;
+    cfg.set("Key1", true);
+    cfg.set("Key2", false);
+    ASSERT_EQ(cfg.get("Key1").as_string(), "True");
+    ASSERT_EQ(cfg.get("Key2").as_string(), "False");
+    ASSERT_EQ(cfg.get("Key1").parse<bool>(), true);
+    ASSERT_EQ(cfg.get("Key2").parse<bool>(), false);
+}
+
 TEST(TestConfigParser, SimpleParsingStrings)
 {
     confparse::ConfigParser parser;
@@ -134,12 +145,27 @@ TEST(TestConfigParser, SimpleParsingNumbers)
     cfg = parser.from_str(R"(
         AppId=1552
         AppScore=3172.3421
-        AppInstalled=1
+        AppInstalled1=1
+        AppInstalled2=True
+        AppInstalled3=true
+        AppInstalled4=False
+        AppInstalled5=False
+        AppInstalled6=0
+        AppInstalled7=SomethingElse
     )");
 
     ASSERT_EQ(cfg.get("AppId").parse<int>(), 1552);
     ASSERT_NEAR(cfg.get("AppScore").parse<double>(), 3172.3421, 0.01);
-    ASSERT_EQ(cfg.get("AppInstalled").parse<int>(), 1);
+    ASSERT_EQ(cfg.get("AppInstalled1").parse<int>(), 1);
+    ASSERT_EQ(cfg.get("AppInstalled1").parse<bool>(), true);
+    ASSERT_EQ(cfg.get("AppInstalled2").parse<bool>(), true);
+    ASSERT_EQ(cfg.get("AppInstalled3").parse<bool>(), true);
+    ASSERT_EQ(cfg.get("AppInstalled4").parse<bool>(), false);
+    ASSERT_EQ(cfg.get("AppInstalled5").parse<bool>(), false);
+    ASSERT_EQ(cfg.get("AppInstalled6").parse<bool>(), false);
+    ASSERT_EQ(cfg.get("AppInstalled6").parse<int>(), 0);
+
+    EXPECT_THROW(cfg.get("AppInstalled7").parse<bool>(), confparse::parse_error);
 }
 
 int main(int argc, char *argv[])
